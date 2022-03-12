@@ -1,0 +1,56 @@
+---
+- name: Install strongswan and nginx packages
+  apt:
+    name: "{{item}}"
+    cache_valid_time: 3600
+    state: latest
+  loop:
+    - strongswan
+    - nginx
+
+- name: Configure kernel settings
+  ansible.posix.sysctl:
+    name: "{{item.name}}"
+    value: "{{item.value}}"
+    sysctl_set: "yes"
+    state: present
+    reload: "yes"
+  loop:
+    - { name: "net.ipv4.ip_forward", value: "1" }
+    - { name: "net.ipv4.conf.all.accept_redirects", value: "0" }
+    - { name: "net.ipv4.conf.all.send_redirects", value: "0" }
+
+- name: Copy IPsec config files
+  ansible.builtin.copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: root
+    group: root
+    mode: "600"
+  notify: restart ipsec
+  loop:
+    - { src: "ipsec.secrets", dest: "/etc/ipsec.secrets" }
+    - { src: "ipsec.conf", dest: "/etc/ipsec.conf" }
+
+- name: Enable IPsec service
+  ansible.builtin.systemd:
+    name: ipsec
+    enabled: "yes"
+    state: started
+
+- name: Copy nginx config file
+  ansible.builtin.copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: root
+    group: root
+    mode: "644"
+  notify: restart nginx
+  loop:
+    - { src: "nginx.conf", dest: "/etc/nginx/sites-available/default" }
+
+- name: Enable NGINX service
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: "yes"
+    state: started

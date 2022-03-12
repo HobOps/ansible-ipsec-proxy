@@ -1,0 +1,10 @@
+all:
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
+    ansible_ssh_pipelining: true
+    ansible_pipelining: true
+    ansible_connection: ssh
+    ansible_become: true
+  hosts:
+    cloud-vpn:
+      ansible_host: x.x.x.x
